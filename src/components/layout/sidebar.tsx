@@ -3,20 +3,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CupSoda } from "lucide-react";
-import { navSections } from "@/lib/navigation";
+import { allNavItems, navSections } from "@/lib/navigation";
 
 type SidebarProps = {
   /** Called after a link is clicked. The mobile drawer uses this to close itself. */
   onNavigate?: () => void;
 };
 
-function isActive(pathname: string, href: string) {
+function matches(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/**
+ * Returns the single most specific link for the current page, so that
+ * /orders/new highlights "New order" only, not "Orders" as well.
+ */
+function getActiveHref(pathname: string): string | undefined {
+  return allNavItems
+    .filter((item) => matches(pathname, item.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+}
+
 export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
+  const activeHref = getActiveHref(pathname);
 
   return (
     <div className="flex h-full flex-col bg-white">
@@ -40,7 +51,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             </p>
             <ul className="space-y-1">
               {section.items.map((item) => {
-                const active = isActive(pathname, item.href);
+                const active = item.href === activeHref;
                 const Icon = item.icon;
 
                 return (

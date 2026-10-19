@@ -6,6 +6,7 @@ import {
   CreditCard,
   Gift,
   LayoutDashboard,
+  Plus,
   ScrollText,
   Settings,
   ShoppingBag,
@@ -37,6 +38,7 @@ export const navSections: NavSection[] = [
     title: "Operations",
     items: [
       { label: "Orders", href: "/orders", icon: ShoppingBag },
+      { label: "New order", href: "/orders/new", icon: Plus },
       { label: "Kitchen", href: "/kitchen", icon: ChefHat },
       { label: "Payments", href: "/payments", icon: CreditCard },
       { label: "Delivery", href: "/delivery", icon: Truck },
