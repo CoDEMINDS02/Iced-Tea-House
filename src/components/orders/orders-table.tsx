@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { Search, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import { OrderDetailPanel } from "@/components/orders/order-detail-panel";
@@ -235,8 +236,16 @@ export function OrdersTable() {
                     }}
                     className="cursor-pointer hover:bg-neutral-50 focus:bg-neutral-50 focus:outline-none"
                   >
-                    <td className="py-3 pr-4 font-medium text-neutral-900">
-                      {order.orderNumber}
+                                        <td className="py-3 pr-4 font-medium text-neutral-900">
+                      <Link
+                        href={`/orders/${order.id}`}
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        aria-label={`Open details page for order ${order.orderNumber}`}
+                        className="text-brand-700 hover:underline"
+                      >
+                        {order.orderNumber}
+                      </Link>
                     </td>
                     <td className="py-3 pr-4 text-neutral-700">
                       {order.customerName}
