@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { allNavItems } from "@/lib/navigation";
 
 type TopbarProps = {
@@ -43,7 +44,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       {/* Page title */}
       <h1 className="text-lg font-semibold text-neutral-900">{title}</h1>
 
-      {/* Demo user */}
+      {/* Demo user and sign out */}
       <div className="ml-auto flex items-center gap-3">
         <div className="hidden text-right leading-tight sm:block">
           <p className="text-sm font-medium text-neutral-900">Demo Admin</p>
@@ -55,6 +56,15 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         >
           DA
         </div>
+        <Link
+          href="/login"
+          title="Sign out"
+          className="inline-flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden md:inline">Sign out</span>
+          <span className="sr-only md:hidden">Sign out</span>
+        </Link>
       </div>
     </header>
   );
