@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CupSoda } from "lucide-react";
+import { CupSoda, LogOut } from "lucide-react";
 import { allNavItems, navSections } from "@/lib/navigation";
 
 type SidebarProps = {
@@ -82,8 +82,20 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Demo label */}
-      <div className="shrink-0 border-t border-neutral-200 p-4">
+      {/* Sign out and demo label */}
+      <div className="shrink-0 space-y-3 border-t border-neutral-200 p-4">
+        <Link
+          href="/login"
+          onClick={onNavigate}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+        >
+          <LogOut
+            className="h-[18px] w-[18px] text-neutral-400"
+            aria-hidden="true"
+          />
+          Sign out
+        </Link>
+
         <div className="rounded-lg bg-brand-50 px-3 py-2">
           <p className="text-xs font-medium text-brand-800">Demo mode</p>
           <p className="text-xs text-brand-700">Using sample data only</p>
