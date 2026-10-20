@@ -3,7 +3,7 @@
 import { Search, X } from "lucide-react";
 import { useState } from "react";
 
-import { categories, products } from "@/data/menu";
+import { useCatalog } from "@/components/catalog/catalog-provider";
 import { formatCurrency } from "@/lib/format";
 import type { Product, ProductSize } from "@/types/menu";
 
@@ -91,6 +91,7 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 export function MenuBoard() {
+  const { categories, products } = useCatalog();
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string>("all");
   const [availableOnly, setAvailableOnly] = useState(false);
@@ -214,7 +215,7 @@ export function MenuBoard() {
                 {category.name}
                 {category.isActive ? null : (
                   <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600">
-                    Inactive
+                    Hidden
                   </span>
                 )}
               </h3>
