@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -10,6 +11,8 @@ type AppShellProps = {
 };
 
 export function AppShell({ children }: AppShellProps) {
+  // All hooks come first, always in the same order.
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // While the mobile drawer is open: close on Escape, lock page scroll,
@@ -37,6 +40,12 @@ export function AppShell({ children }: AppShellProps) {
       desktopQuery.removeEventListener("change", onQueryChange);
     };
   }, [mobileOpen]);
+
+  // Only after every hook: the login page is a clean full-screen page
+  // with no sidebar or topbar.
+  if (pathname === "/login") {
+    return <main className="min-h-screen bg-background">{children}</main>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
