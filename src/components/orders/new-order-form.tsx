@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 
-import { categories, products } from "@/data/menu";
+import { useCatalog } from "@/components/catalog/catalog-provider";
 import { formatCurrency } from "@/lib/format";
 import { METHOD_LABELS, TYPE_LABELS } from "@/lib/order-labels";
 import {
@@ -37,7 +37,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 export function NewOrderForm() {
   const router = useRouter();
   const { orders, addOrder } = useOrders();
-
+  const { categories, products } = useCatalog();
   const [items, setItems] = useState<OrderItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -62,8 +62,8 @@ export function NewOrderForm() {
             (product) => product.categoryId === category.id,
           ),
         }))
-        .filter((group) => group.products.length > 0),
-    [],
+                .filter((group) => group.products.length > 0),
+    [categories, products],
   );
 
   function addProduct(product: Product) {

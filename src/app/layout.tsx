@@ -2,6 +2,7 @@
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppShell } from "@/components/layout/app-shell";
+import { CatalogProvider } from "@/components/catalog/catalog-provider";
 import { OrdersProvider } from "@/components/orders/orders-provider";
 import "./globals.css";
 
@@ -28,9 +29,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full">
         <OrdersProvider>
-          <Suspense fallback={null}>
-            <AppShell>{children}</AppShell>
-          </Suspense>
+          <CatalogProvider>
+            <Suspense fallback={null}>
+              <AppShell>{children}</AppShell>
+            </Suspense>
+          </CatalogProvider>
         </OrdersProvider>
       </body>
     </html>
