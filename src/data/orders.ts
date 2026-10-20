@@ -4,7 +4,11 @@ import type { Order, OrderItem } from "@/types/order";
 const MINUTE_MS = 60_000;
 const SHOP_UTC_OFFSET_HOURS = 5; // Asia/Karachi is UTC+5, no daylight saving.
 
-/** Builds an order item from a product id, copying its name and price. */
+// Demo-only staff names for the proposed Order.createdBy field.
+const ADMIN = "Demo Admin";
+const CASHIER = "Demo Cashier";
+
+/** Builds an order item from a product id, copying its name, price and category. */
 function item(productId: string, quantity: number): OrderItem {
   const product = products.find((p) => p.id === productId);
 
@@ -17,20 +21,28 @@ function item(productId: string, quantity: number): OrderItem {
     name: product.name,
     unitPrice: product.price,
     quantity,
+    categoryId: product.categoryId,
   };
 }
 
-/** Calculates subtotal and total so they can never be typed wrongly. */
+/**
+ * Calculates subtotal and total so they can never be typed wrongly.
+ * Total = subtotal - discount + delivery fee (0 for complimentary orders).
+ */
 function buildOrder(input: Omit<Order, "subtotal" | "total">): Order {
   const subtotal = input.items.reduce(
     (sum, orderItem) => sum + orderItem.unitPrice * orderItem.quantity,
     0,
   );
+  const discount = input.discount ?? 0;
+  const deliveryFee = input.deliveryFee ?? 0;
 
   return {
     ...input,
     subtotal,
-    total: input.isComplimentary ? 0 : subtotal,
+    total: input.isComplimentary
+      ? 0
+      : Math.max(subtotal - discount + deliveryFee, 0),
   };
 }
 
@@ -83,6 +95,7 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "unpaid",
       items: [item("prod-lemon-tea", 2), item("prod-fries", 1)],
       isComplimentary: false,
+      createdBy: CASHIER,
       createdAt: minutesAgo(8),
     }),
     buildOrder({
@@ -96,6 +109,8 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "paid",
       items: [item("prod-strawberry-tea", 1), item("prod-sandwich", 1)],
       isComplimentary: false,
+      deliveryFee: 150,
+      createdBy: ADMIN,
       notes: "Less ice please.",
       createdAt: minutesAgo(38),
     }),
@@ -109,6 +124,7 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "paid",
       items: [item("prod-house-blend", 2), item("prod-brownie", 1)],
       isComplimentary: false,
+      createdBy: CASHIER,
       createdAt: minutesAgo(73),
     }),
     buildOrder({
@@ -125,6 +141,8 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
         item("prod-lemonade", 1),
       ],
       isComplimentary: false,
+      discount: 100,
+      createdBy: CASHIER,
       createdAt: minutesAgo(118),
     }),
     buildOrder({
@@ -138,6 +156,8 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "paid",
       items: [item("prod-mango-tea", 2), item("prod-fries", 1)],
       isComplimentary: false,
+      deliveryFee: 150,
+      createdBy: ADMIN,
       createdAt: minutesAgo(168),
     }),
     buildOrder({
@@ -150,6 +170,7 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "paid",
       items: [item("prod-house-blend", 1), item("prod-matcha-cooler", 1)],
       isComplimentary: true,
+      createdBy: ADMIN,
       notes: "Complimentary tasting for new recipe.",
       createdAt: minutesAgo(213),
     }),
@@ -163,6 +184,7 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "paid",
       items: [item("prod-mint-tea", 3)],
       isComplimentary: false,
+      createdBy: CASHIER,
       createdAt: daysAgo(1, 22, 20),
     }),
     buildOrder({
@@ -175,6 +197,7 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "unpaid",
       items: [item("prod-hibiscus", 1)],
       isComplimentary: false,
+      createdBy: CASHIER,
       notes: "Customer left before the order was served.",
       createdAt: daysAgo(1, 20, 5),
     }),
@@ -189,6 +212,8 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "paid",
       items: [item("prod-sandwich", 2), item("prod-lemonade", 2)],
       isComplimentary: false,
+      deliveryFee: 150,
+      createdBy: ADMIN,
       createdAt: daysAgo(1, 18, 10),
     }),
     buildOrder({
@@ -205,6 +230,8 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
         item("prod-brownie", 1),
       ],
       isComplimentary: false,
+      discount: 150,
+      createdBy: CASHIER,
       createdAt: daysAgo(2, 23, 45),
     }),
     buildOrder({
@@ -217,6 +244,7 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "paid",
       items: [item("prod-lemon-tea", 1), item("prod-peach-tea", 1)],
       isComplimentary: false,
+      createdBy: ADMIN,
       createdAt: daysAgo(2, 21, 0),
     }),
     buildOrder({
@@ -230,6 +258,7 @@ export function createDemoOrders(now: Date = new Date()): Order[] {
       paymentStatus: "refunded",
       items: [item("prod-strawberry-tea", 2)],
       isComplimentary: false,
+      createdBy: ADMIN,
       notes: "Delivery address was outside the service area.",
       createdAt: daysAgo(2, 17, 25),
     }),

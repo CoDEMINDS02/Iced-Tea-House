@@ -30,6 +30,13 @@ export type ProductSales = {
   revenue: number;
 };
 
+export type StaffSales = {
+  /** Staff member name, or "Not recorded" when the order has no createdBy. */
+  name: string;
+  sales: number;
+  orders: number;
+};
+
 export type SalesReport = {
   period: SalesPeriod;
   /** First and last shop day of the report, "YYYY-MM-DD". */
@@ -48,10 +55,16 @@ export type SalesReport = {
   complimentaryCount: number;
   /** Menu price of complimentary orders (what was given away). */
   complimentaryValue: number;
+  /** Discounts on counted sales. Already taken off sales. */
+  discounts: number;
+  /** Delivery fees on counted sales. Already included in sales. */
+  deliveryFees: number;
   /** One entry per day from fromDay to toDay, with zeros for quiet days. */
   daily: DailySales[];
   byPaymentMethod: Record<PaymentMethod, GroupTotals>;
   byOrderType: Record<OrderType, GroupTotals>;
+  /** Sales per staff member, highest first. */
+  byStaff: StaffSales[];
   topProducts: ProductSales[];
   /** Every product sold in the period, best sellers first. */
   soldProducts: ProductSales[];
@@ -63,6 +76,9 @@ const DAY_MS = 24 * HOUR_MS;
 
 const PAYMENT_METHODS: PaymentMethod[] = ["cash", "card", "online"];
 const ORDER_TYPES: OrderType[] = ["dine-in", "takeaway", "delivery"];
+
+/** Label for orders that have no createdBy value. */
+const NO_STAFF_LABEL = "Not recorded";
 
 /**
  * The shop day (Karachi) of a moment, as "YYYY-MM-DD".
@@ -198,11 +214,14 @@ export function buildSalesReport(
   let cancelledCount = 0;
   let complimentaryCount = 0;
   let complimentaryValue = 0;
+  let discounts = 0;
+  let deliveryFees = 0;
 
   const dailyMap = new Map<string, DailySales>();
   const byPaymentMethod = emptyTotals(PAYMENT_METHODS);
   const byOrderType = emptyTotals(ORDER_TYPES);
   const productMap = new Map<string, ProductSales>();
+  const staffMap = new Map<string, StaffSales>();
 
   for (const { order, day } of inRange) {
     const cancelled = order.status === "cancelled";
@@ -227,6 +246,8 @@ export function buildSalesReport(
     // From here on it is a real sale.
     sales += order.total;
     orderCount += 1;
+    discounts += order.discount ?? 0;
+    deliveryFees += order.deliveryFee ?? 0;
 
     if (order.paymentStatus === "unpaid") unpaid += order.total;
 
@@ -239,6 +260,16 @@ export function buildSalesReport(
     byPaymentMethod[order.paymentMethod].orders += 1;
     byOrderType[order.type].sales += order.total;
     byOrderType[order.type].orders += 1;
+
+    const staffName = order.createdBy?.trim() || NO_STAFF_LABEL;
+    const staffTotals = staffMap.get(staffName) ?? {
+      name: staffName,
+      sales: 0,
+      orders: 0,
+    };
+    staffTotals.sales += order.total;
+    staffTotals.orders += 1;
+    staffMap.set(staffName, staffTotals);
 
     for (const item of order.items) {
       const existing = productMap.get(item.productId);
@@ -267,6 +298,10 @@ export function buildSalesReport(
   );
   const topProducts = soldProducts.slice(0, 5);
 
+  const byStaff = Array.from(staffMap.values()).sort(
+    (a, b) => b.sales - a.sales || b.orders - a.orders,
+  );
+
   return {
     period,
     fromDay,
@@ -279,9 +314,12 @@ export function buildSalesReport(
     cancelledCount,
     complimentaryCount,
     complimentaryValue,
+    discounts,
+    deliveryFees,
     daily,
     byPaymentMethod,
     byOrderType,
+    byStaff,
     topProducts,
     soldProducts,
   };

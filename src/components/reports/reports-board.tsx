@@ -62,37 +62,46 @@ function BreakdownCard({
   return (
     <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
       <h3 className="text-sm font-semibold text-neutral-900">{title}</h3>
-      <ul className="mt-4 space-y-4">
-        {rows.map((row) => {
-          const share =
-            totalSales > 0 ? Math.round((row.totals.sales / totalSales) * 100) : 0;
 
-          return (
-            <li key={row.label}>
-              <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="text-neutral-700">{row.label}</span>
-                <span className="text-neutral-900">
-                  {formatCurrency(row.totals.sales)}
-                  <span className="ml-2 text-xs text-neutral-500">
-                    {row.totals.orders}{" "}
-                    {row.totals.orders === 1 ? "order" : "orders"}
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-neutral-500">
+          No sales in this period.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-4">
+          {rows.map((row) => {
+            const share =
+              totalSales > 0
+                ? Math.round((row.totals.sales / totalSales) * 100)
+                : 0;
+
+            return (
+              <li key={row.label}>
+                <div className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="text-neutral-700">{row.label}</span>
+                  <span className="text-neutral-900">
+                    {formatCurrency(row.totals.sales)}
+                    <span className="ml-2 text-xs text-neutral-500">
+                      {row.totals.orders}{" "}
+                      {row.totals.orders === 1 ? "order" : "orders"}
+                    </span>
                   </span>
-                </span>
-              </div>
-              <div
-                className="mt-1.5 h-2 overflow-hidden rounded-full bg-neutral-100"
-                role="img"
-                aria-label={`${row.label}: ${share}% of sales`}
-              >
+                </div>
                 <div
-                  className="h-full rounded-full bg-brand-600"
-                  style={{ width: `${share}%` }}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                  className="mt-1.5 h-2 overflow-hidden rounded-full bg-neutral-100"
+                  role="img"
+                  aria-label={`${row.label}: ${share}% of sales`}
+                >
+                  <div
+                    className="h-full rounded-full bg-brand-600"
+                    style={{ width: `${share}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }
@@ -282,7 +291,7 @@ export function ReportsBoard() {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Unpaid (part of sales)"
           value={formatCurrency(report.unpaid)}
@@ -294,6 +303,16 @@ export function ReportsBoard() {
             report.complimentaryCount === 1 ? "order" : "orders"
           }`}
           hint={`Menu value ${formatCurrency(report.complimentaryValue)}, not in sales`}
+        />
+        <StatCard
+          label="Discounts given"
+          value={formatCurrency(report.discounts)}
+          hint="Already taken off sales"
+        />
+        <StatCard
+          label="Delivery fees"
+          value={formatCurrency(report.deliveryFees)}
+          hint="Already included in sales"
         />
       </div>
 
@@ -382,6 +401,15 @@ export function ReportsBoard() {
           }))}
         />
       </div>
+
+      <BreakdownCard
+        title="By staff"
+        totalSales={report.sales}
+        rows={report.byStaff.map((staff) => ({
+          label: staff.name,
+          totals: { sales: staff.sales, orders: staff.orders },
+        }))}
+      />
 
       <CategoryCard rows={categorySales} />
 
