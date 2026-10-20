@@ -12,13 +12,16 @@ type TopbarProps = {
 function getPageTitle(pathname: string) {
   if (pathname === "/") return "Dashboard";
 
-  const match = allNavItems.find(
+  const matches = allNavItems.filter(
     (item) =>
       item.href !== "/" &&
       (pathname === item.href || pathname.startsWith(`${item.href}/`)),
   );
 
-  return match ? match.label : "Iced Tea House";
+  // The most specific link wins: "/orders/new" beats "/orders".
+  const best = matches.sort((a, b) => b.href.length - a.href.length)[0];
+
+  return best ? best.label : "Iced Tea House";
 }
 
 export function Topbar({ onMenuClick }: TopbarProps) {

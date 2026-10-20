@@ -400,7 +400,7 @@ export function NewOrderForm() {
             Create order
           </button>
           <p className="text-center text-xs text-neutral-400">
-            Demo only. Orders reset when the page is reloaded.
+                       Demo only. Orders are saved in this browser, not on a server.
           </p>
         </div>
       </aside>
