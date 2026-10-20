@@ -1,5 +1,8 @@
 import { RecipesBoard } from "@/components/recipes/recipes-board";
 
+// Opt this page out of Next.js's instant-navigation check (a dev-mode warning).
+export const instant = false;
+
 export default function RecipesPage() {
   return (
     <div className="mx-auto max-w-7xl">
