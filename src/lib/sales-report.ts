@@ -53,6 +53,8 @@ export type SalesReport = {
   byPaymentMethod: Record<PaymentMethod, GroupTotals>;
   byOrderType: Record<OrderType, GroupTotals>;
   topProducts: ProductSales[];
+  /** Every product sold in the period, best sellers first. */
+  soldProducts: ProductSales[];
 };
 
 const SHOP_UTC_OFFSET_HOURS = 5; // Asia/Karachi is UTC+5, no daylight saving.
@@ -260,9 +262,10 @@ export function buildSalesReport(
     (day) => dailyMap.get(day) ?? { day, sales: 0, orders: 0 },
   );
 
-  const topProducts = Array.from(productMap.values())
-    .sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue)
-    .slice(0, 5);
+  const soldProducts = Array.from(productMap.values()).sort(
+    (a, b) => b.quantity - a.quantity || b.revenue - a.revenue,
+  );
+  const topProducts = soldProducts.slice(0, 5);
 
   return {
     period,
@@ -280,5 +283,6 @@ export function buildSalesReport(
     byPaymentMethod,
     byOrderType,
     topProducts,
+    soldProducts,
   };
 }

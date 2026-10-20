@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BookOpen, Search } from "lucide-react";
 
-import { categories, products } from "@/data/menu";
+import { useCatalog } from "@/components/catalog/catalog-provider";
 import { recipes } from "@/data/recipes";
 import {
   SIZE_LABELS,
@@ -17,16 +17,24 @@ import type { ProductSize } from "@/types/menu";
 const inputClass =
   "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
 
-const entries = buildRecipeEntries(products, recipes);
-const categoryNames = new Map(
-  categories.map((category) => [category.id, category.name] as const),
-);
-
 export function RecipesBoard() {
+  const { categories, products } = useCatalog();
+
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [size, setSize] = useState<ProductSize>("medium");
+
+  const entries = useMemo(
+    () => buildRecipeEntries(products, recipes),
+    [products],
+  );
+
+  const categoryNames = useMemo(
+    () =>
+      new Map(categories.map((category) => [category.id, category.name] as const)),
+    [categories],
+  );
 
   const visible = filterRecipeEntries(entries, { query, categoryId });
 

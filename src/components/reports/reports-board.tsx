@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 
+import { useCatalog } from "@/components/catalog/catalog-provider";
 import { useOrders } from "@/components/orders/orders-provider";
+import { buildCategorySales, type CategorySales } from "@/lib/category-sales";
 import { formatCurrency, formatDayLabel } from "@/lib/format";
 import { METHOD_LABELS, TYPE_LABELS } from "@/lib/order-labels";
 import {
@@ -95,8 +97,62 @@ function BreakdownCard({
   );
 }
 
+function CategoryCard({ rows }: { rows: CategorySales[] }) {
+  // Shares are measured against the category total, so the bars add up to 100%.
+  const totalRevenue = rows.reduce((sum, row) => sum + row.revenue, 0);
+
+  return (
+    <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-neutral-900">By category</h3>
+      <p className="mt-1 text-xs text-neutral-500">
+        Item prices times quantity, using each product&apos;s current category.
+      </p>
+
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-neutral-500">
+          No products sold in this period.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-4">
+          {rows.map((row) => {
+            const share =
+              totalRevenue > 0
+                ? Math.round((row.revenue / totalRevenue) * 100)
+                : 0;
+
+            return (
+              <li key={row.categoryId}>
+                <div className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="text-neutral-700">{row.name}</span>
+                  <span className="text-neutral-900">
+                    {formatCurrency(row.revenue)}
+                    <span className="ml-2 text-xs text-neutral-500">
+                      {row.quantity} sold
+                    </span>
+                  </span>
+                </div>
+                <div
+                  className="mt-1.5 h-2 overflow-hidden rounded-full bg-neutral-100"
+                  role="img"
+                  aria-label={`${row.name}: ${share}% of category sales`}
+                >
+                  <div
+                    className="h-full rounded-full bg-brand-600"
+                    style={{ width: `${share}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function ReportsBoard() {
   const { orders } = useOrders();
+  const { categories, products } = useCatalog();
   const [period, setPeriod] = useState<SalesPeriod>("7d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -112,6 +168,11 @@ export function ReportsBoard() {
   const report = useMemo(
     () => buildSalesReport(orders, period, new Date(), customRange),
     [orders, period, customRange],
+  );
+
+  const categorySales = useMemo(
+    () => buildCategorySales(report.soldProducts, products, categories),
+    [report.soldProducts, products, categories],
   );
 
   const maxDaily = Math.max(...report.daily.map((d) => d.sales), 0);
@@ -321,6 +382,8 @@ export function ReportsBoard() {
           }))}
         />
       </div>
+
+      <CategoryCard rows={categorySales} />
 
       {/* Top products */}
       <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
