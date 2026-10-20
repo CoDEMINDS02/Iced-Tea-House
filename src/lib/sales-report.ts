@@ -1,6 +1,15 @@
 import type { Order, OrderType, PaymentMethod } from "@/types/order";
 
-export type SalesPeriod = "today" | "7d" | "30d" | "all";
+export type SalesPeriod = "today" | "7d" | "30d" | "year" | "all" | "custom";
+
+/** A custom report range, as "YYYY-MM-DD" shop days. */
+export type CustomRange = {
+  from: string;
+  to: string;
+};
+
+/** Longest custom range allowed, so the daily chart stays readable. */
+export const MAX_CUSTOM_DAYS = 366;
 
 export type DailySales = {
   /** Shop day as "YYYY-MM-DD". */
@@ -96,10 +105,37 @@ function emptyTotals<K extends string>(keys: K[]): Record<K, GroupTotals> {
   return totals;
 }
 
+const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Returns a message to show the user, or null when the range is usable. */
+export function validateCustomRange(range: CustomRange): string | null {
+  if (!DAY_PATTERN.test(range.from) || !DAY_PATTERN.test(range.to)) {
+    return "Choose a start and an end date.";
+  }
+
+  const from = Date.parse(`${range.from}T00:00:00.000Z`);
+  const to = Date.parse(`${range.to}T00:00:00.000Z`);
+
+  if (Number.isNaN(from) || Number.isNaN(to)) {
+    return "Choose a start and an end date.";
+  }
+
+  if (from > to) {
+    return "The start date must be on or before the end date.";
+  }
+
+  if ((to - from) / DAY_MS + 1 > MAX_CUSTOM_DAYS) {
+    return `Choose a range of at most ${MAX_CUSTOM_DAYS} days.`;
+  }
+
+  return null;
+}
+
 export function buildSalesReport(
   orders: Order[],
   period: SalesPeriod,
   now: Date = new Date(),
+  customRange?: CustomRange,
 ): SalesReport {
   const today = shopDayOf(now);
 
@@ -125,6 +161,20 @@ export function buildSalesReport(
     case "30d":
       fromDay = shiftDay(today, -29);
       toDay = today;
+      break;
+    case "year":
+      fromDay = `${today.slice(0, 4)}-01-01`;
+      toDay = today;
+      break;
+    case "custom":
+      if (customRange && validateCustomRange(customRange) === null) {
+        fromDay = customRange.from;
+        toDay = customRange.to;
+      } else {
+        // Incomplete or invalid range: show today until a valid one is chosen.
+        fromDay = today;
+        toDay = today;
+      }
       break;
     default: {
       const first = orderDays[0];

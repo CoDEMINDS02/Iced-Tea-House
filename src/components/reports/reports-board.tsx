@@ -7,6 +7,8 @@ import { formatCurrency, formatDayLabel } from "@/lib/format";
 import { METHOD_LABELS, TYPE_LABELS } from "@/lib/order-labels";
 import {
   buildSalesReport,
+  validateCustomRange,
+  type CustomRange,
   type GroupTotals,
   type SalesPeriod,
 } from "@/lib/sales-report";
@@ -15,8 +17,13 @@ const PERIODS: { value: SalesPeriod; label: string }[] = [
   { value: "today", label: "Today" },
   { value: "7d", label: "Last 7 days" },
   { value: "30d", label: "Last 30 days" },
+  { value: "year", label: "This year" },
   { value: "all", label: "All time" },
+  { value: "custom", label: "Custom range" },
 ];
+
+const inputClass =
+  "rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
 
 /** "15 Oct 2026" -> "15 Oct" */
 function shortDay(day: string): string {
@@ -91,10 +98,20 @@ function BreakdownCard({
 export function ReportsBoard() {
   const { orders } = useOrders();
   const [period, setPeriod] = useState<SalesPeriod>("7d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+
+  const customRange = useMemo<CustomRange>(
+    () => ({ from: customFrom, to: customTo }),
+    [customFrom, customTo],
+  );
+
+  const customError =
+    period === "custom" ? validateCustomRange(customRange) : null;
 
   const report = useMemo(
-    () => buildSalesReport(orders, period),
-    [orders, period],
+    () => buildSalesReport(orders, period, new Date(), customRange),
+    [orders, period, customRange],
   );
 
   const maxDaily = Math.max(...report.daily.map((d) => d.sales), 0);
@@ -126,6 +143,56 @@ export function ReportsBoard() {
             </button>
           ))}
         </div>
+
+        {period === "custom" ? (
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div>
+              <label
+                htmlFor="reportFrom"
+                className="mb-1 block text-sm font-medium text-neutral-700"
+              >
+                From
+              </label>
+              <input
+                id="reportFrom"
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                aria-invalid={Boolean(customError)}
+                aria-describedby={customError ? "reportRange-error" : undefined}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="reportTo"
+                className="mb-1 block text-sm font-medium text-neutral-700"
+              >
+                To
+              </label>
+              <input
+                id="reportTo"
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                aria-invalid={Boolean(customError)}
+                aria-describedby={customError ? "reportRange-error" : undefined}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {customError ? (
+          <p
+            id="reportRange-error"
+            role="alert"
+            className="mt-2 text-sm text-red-600"
+          >
+            {customError} Showing today until a valid range is chosen.
+          </p>
+        ) : null}
+
         <p className="mt-2 text-sm text-neutral-500">
           {rangeLabel} (shop time, Karachi)
         </p>
