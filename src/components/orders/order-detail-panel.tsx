@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
-import { X } from "lucide-react";
+import Link from "next/link";
+import { ExternalLink, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { PaymentBadge } from "@/components/orders/payment-badge";
@@ -73,14 +74,23 @@ export function OrderDetailPanel({
               {formatDateTime(order.createdAt)}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close order details"
-            className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/orders/${order.id}`}
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50"
+            >
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              Open full page
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close order details"
+              className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
