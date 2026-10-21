@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 
 import { useCatalog } from "@/components/catalog/catalog-provider";
+import { AUDIT_ACTOR } from "@/lib/audit-log";
 import { formatCurrency } from "@/lib/format";
 import { METHOD_LABELS, TYPE_LABELS } from "@/lib/order-labels";
 import {
   buildNewOrder,
+  calculateAdjustments,
   calculateSubtotal,
+  calculateTotal,
   countPieces,
   validateNewOrder,
   type NewOrderErrors,
@@ -23,6 +26,13 @@ const PAYMENT_METHODS = Object.keys(METHOD_LABELS) as PaymentMethod[];
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
+
+/** Keeps the live total safe while the user is still typing: bad text counts as 0. */
+function cleanAmount(value: string): string {
+  const text = value.trim();
+
+  return /^\d+$/.test(text) ? text : "";
+}
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -44,12 +54,26 @@ export function NewOrderForm() {
   const [type, setType] = useState<OrderType>("dine-in");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [isComplimentary, setIsComplimentary] = useState(false);
+  const [discount, setDiscount] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState("");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<NewOrderErrors>({});
 
   const subtotal = calculateSubtotal(items);
-  const total = isComplimentary ? 0 : subtotal;
   const pieces = countPieces(items);
+
+  // Values used only for the live summary (invalid text counts as 0).
+  const liveAmounts = {
+    type,
+    isComplimentary,
+    discount: cleanAmount(discount),
+    deliveryFee: cleanAmount(deliveryFee),
+  };
+  const adjustments = calculateAdjustments(liveAmounts);
+  const total = Math.max(0, calculateTotal(items, liveAmounts));
+
+  const showDiscount = !isComplimentary;
+  const showDeliveryFee = !isComplimentary && type === "delivery";
 
   // Active categories that still have at least one product.
   const groups = useMemo(
@@ -62,7 +86,7 @@ export function NewOrderForm() {
             (product) => product.categoryId === category.id,
           ),
         }))
-                .filter((group) => group.products.length > 0),
+        .filter((group) => group.products.length > 0),
     [categories, products],
   );
 
@@ -83,6 +107,7 @@ export function NewOrderForm() {
           name: product.name,
           unitPrice: product.price,
           quantity: 1,
+          categoryId: product.categoryId,
         },
       ];
     });
@@ -116,6 +141,9 @@ export function NewOrderForm() {
       isComplimentary,
       notes,
       items,
+      discount,
+      deliveryFee,
+      createdBy: AUDIT_ACTOR,
     };
 
     const foundErrors = validateNewOrder(input);
@@ -256,6 +284,18 @@ export function NewOrderForm() {
               <dt>Subtotal</dt>
               <dd>{formatCurrency(subtotal)}</dd>
             </div>
+            {adjustments.discount > 0 && (
+              <div className="flex justify-between text-neutral-600">
+                <dt>Discount</dt>
+                <dd>- {formatCurrency(adjustments.discount)}</dd>
+              </div>
+            )}
+            {adjustments.deliveryFee > 0 && (
+              <div className="flex justify-between text-neutral-600">
+                <dt>Delivery fee</dt>
+                <dd>+ {formatCurrency(adjustments.deliveryFee)}</dd>
+              </div>
+            )}
             <div className="flex justify-between font-semibold text-neutral-900">
               <dt>Total</dt>
               <dd>{formatCurrency(total)}</dd>
@@ -364,6 +404,54 @@ export function NewOrderForm() {
             </div>
           </div>
 
+          {showDiscount && (
+            <div>
+              <label
+                htmlFor="discount"
+                className="mb-1 block text-sm font-medium text-neutral-700"
+              >
+                Discount in Rs (optional)
+              </label>
+              <input
+                id="discount"
+                type="text"
+                inputMode="numeric"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                placeholder="0"
+                aria-invalid={Boolean(errors.discount)}
+                aria-describedby={errors.discount ? "discount-error" : undefined}
+                className={inputClass}
+              />
+              <FieldError id="discount-error" message={errors.discount} />
+            </div>
+          )}
+
+          {showDeliveryFee && (
+            <div>
+              <label
+                htmlFor="deliveryFee"
+                className="mb-1 block text-sm font-medium text-neutral-700"
+              >
+                Delivery fee in Rs (optional)
+              </label>
+              <input
+                id="deliveryFee"
+                type="text"
+                inputMode="numeric"
+                value={deliveryFee}
+                onChange={(e) => setDeliveryFee(e.target.value)}
+                placeholder="0"
+                aria-invalid={Boolean(errors.deliveryFee)}
+                aria-describedby={
+                  errors.deliveryFee ? "deliveryFee-error" : undefined
+                }
+                className={inputClass}
+              />
+              <FieldError id="deliveryFee-error" message={errors.deliveryFee} />
+            </div>
+          )}
+
           <label className="flex items-center gap-2 text-sm text-neutral-700">
             <input
               type="checkbox"
@@ -400,7 +488,7 @@ export function NewOrderForm() {
             Create order
           </button>
           <p className="text-center text-xs text-neutral-400">
-                       Demo only. Orders are saved in this browser, not on a server.
+            Demo only. Orders are saved in this browser, not on a server.
           </p>
         </div>
       </aside>

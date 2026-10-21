@@ -13,18 +13,30 @@ export type NewOrderInput = {
   isComplimentary: boolean;
   notes: string;
   items: OrderItem[];
+  /** Whole rupees typed in the form. Empty means no discount. */
+  discount?: string;
+  /** Whole rupees typed in the form. Only used for delivery orders. */
+  deliveryFee?: string;
+  /** Display name of the staff member who takes the order. */
+  createdBy?: string;
 };
 
 export type NewOrderField =
   | "customerName"
   | "customerPhone"
   | "notes"
-  | "items";
+  | "items"
+  | "discount"
+  | "deliveryFee";
 
 export type NewOrderErrors = Partial<Record<NewOrderField, string>>;
 
 const MAX_NAME_LENGTH = 60;
 const MAX_NOTES_LENGTH = 200;
+/** Demo limit, so a typing mistake like 50000 is caught. */
+const MAX_DELIVERY_FEE = 10000;
+
+const WHOLE_AMOUNT_PATTERN = /^\d+$/;
 
 export function calculateSubtotal(items: OrderItem[]): number {
   return items.reduce(
@@ -40,6 +52,48 @@ export function countPieces(items: OrderItem[]): number {
 
 function countDigits(value: string): number {
   return value.replace(/\D/g, "").length;
+}
+
+/** "" or undefined -> 0. Call only after the value has been validated. */
+function parseAmount(value: string | undefined): number {
+  const text = (value ?? "").trim();
+
+  return text === "" ? 0 : Number(text);
+}
+
+/**
+ * The discount and delivery fee that really apply to an order.
+ * Complimentary orders have neither. Delivery fee is only for delivery orders.
+ */
+export function calculateAdjustments(
+  input: Pick<
+    NewOrderInput,
+    "type" | "isComplimentary" | "discount" | "deliveryFee"
+  >,
+): { discount: number; deliveryFee: number } {
+  if (input.isComplimentary) {
+    return { discount: 0, deliveryFee: 0 };
+  }
+
+  return {
+    discount: parseAmount(input.discount),
+    deliveryFee: input.type === "delivery" ? parseAmount(input.deliveryFee) : 0,
+  };
+}
+
+/** Demo total = subtotal - discount + deliveryFee, and 0 for complimentary. */
+export function calculateTotal(
+  items: OrderItem[],
+  input: Pick<
+    NewOrderInput,
+    "type" | "isComplimentary" | "discount" | "deliveryFee"
+  >,
+): number {
+  if (input.isComplimentary) return 0;
+
+  const { discount, deliveryFee } = calculateAdjustments(input);
+
+  return calculateSubtotal(items) - discount + deliveryFee;
 }
 
 export function validateNewOrder(input: NewOrderInput): NewOrderErrors {
@@ -75,6 +129,29 @@ export function validateNewOrder(input: NewOrderInput): NewOrderErrors {
     errors.items = "Add at least one product to the order.";
   }
 
+  // Complimentary orders ignore discount and delivery fee, so skip the checks.
+  if (!input.isComplimentary) {
+    const discountText = (input.discount ?? "").trim();
+
+    if (discountText !== "") {
+      if (!WHOLE_AMOUNT_PATTERN.test(discountText)) {
+        errors.discount = "Enter a whole amount in rupees, e.g. 100.";
+      } else if (Number(discountText) > calculateSubtotal(input.items)) {
+        errors.discount = "Discount cannot be more than the subtotal.";
+      }
+    }
+
+    const feeText = (input.deliveryFee ?? "").trim();
+
+    if (input.type === "delivery" && feeText !== "") {
+      if (!WHOLE_AMOUNT_PATTERN.test(feeText)) {
+        errors.deliveryFee = "Enter a whole amount in rupees, e.g. 150.";
+      } else if (Number(feeText) > MAX_DELIVERY_FEE) {
+        errors.deliveryFee = `Delivery fee must be Rs ${MAX_DELIVERY_FEE} or less.`;
+      }
+    }
+  }
+
   return errors;
 }
 
@@ -101,6 +178,8 @@ export function buildNewOrder(
   const subtotal = calculateSubtotal(input.items);
   const phone = input.customerPhone.trim();
   const notes = input.notes.trim();
+  const createdBy = (input.createdBy ?? "").trim();
+  const { discount, deliveryFee } = calculateAdjustments(input);
 
   return {
     id: `ord-${nextNumber}`,
@@ -113,9 +192,12 @@ export function buildNewOrder(
     paymentStatus: input.isComplimentary ? "paid" : "unpaid",
     items: input.items,
     subtotal,
-    total: input.isComplimentary ? 0 : subtotal,
+    total: calculateTotal(input.items, input),
     isComplimentary: input.isComplimentary,
     ...(notes ? { notes } : {}),
     createdAt: now.toISOString(),
+    ...(discount > 0 ? { discount } : {}),
+    ...(deliveryFee > 0 ? { deliveryFee } : {}),
+    ...(createdBy ? { createdBy } : {}),
   };
 }
