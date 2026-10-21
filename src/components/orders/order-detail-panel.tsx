@@ -145,6 +145,16 @@ export function OrderDetailPanel({
 
             <dl className="mt-2 border-t border-neutral-200 pt-2">
               <InfoRow label="Subtotal">{formatCurrency(order.subtotal)}</InfoRow>
+              {order.discount ? (
+                <InfoRow label="Discount">
+                  - {formatCurrency(order.discount)}
+                </InfoRow>
+              ) : null}
+              {order.deliveryFee ? (
+                <InfoRow label="Delivery fee">
+                  + {formatCurrency(order.deliveryFee)}
+                </InfoRow>
+              ) : null}
               <div className="flex items-center justify-between gap-4 py-2 text-base font-semibold">
                 <dt className="text-neutral-900">Total</dt>
                 <dd className="text-neutral-900">{formatCurrency(order.total)}</dd>
