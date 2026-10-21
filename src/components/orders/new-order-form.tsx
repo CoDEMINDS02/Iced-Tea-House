@@ -456,7 +456,11 @@ export function NewOrderForm() {
             <input
               type="checkbox"
               checked={isComplimentary}
-              onChange={(e) => setIsComplimentary(e.target.checked)}
+              onChange={(e) => {
+                setIsComplimentary(e.target.checked);
+                // The "reason required" error no longer applies once unticked.
+                setErrors((current) => ({ ...current, notes: undefined }));
+              }}
               className="h-4 w-4 rounded border-neutral-300 accent-brand-600"
             />
             Complimentary order (free of charge)
